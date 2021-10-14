@@ -44,11 +44,11 @@ class KITTI(data.Dataset):
         # data split loading
         assert split in ['train', 'val', 'trainval', 'test']
         self.split = split
-        split_dir = os.path.join(root_dir, 'KITTI', 'ImageSets', split + '.txt')
+        split_dir = os.path.join(root_dir, 'ImageSets_subcnn', split + '.txt')
         self.idx_list = [x.strip() for x in open(split_dir).readlines()]
 
         # path configuration
-        self.data_dir = os.path.join(root_dir, 'KITTI', 'testing' if split == 'test' else 'training')
+        self.data_dir = os.path.join(root_dir, 'testing' if split == 'test' else 'training')
         self.image_dir = os.path.join(self.data_dir, 'image_2')
         self.depth_dir = os.path.join(self.data_dir, 'depth')
         self.calib_dir = os.path.join(self.data_dir, 'calib')
@@ -150,8 +150,8 @@ class KITTI(data.Dataset):
             height2d = np.zeros((self.max_objs, 1), dtype=np.float32)
             cls_ids = np.zeros((self.max_objs), dtype=np.int64)
             indices = np.zeros((self.max_objs), dtype=np.int64)
-            mask_2d = np.zeros((self.max_objs), dtype=np.uint8)
-            mask_3d = np.zeros((self.max_objs), dtype=np.uint8)
+            mask_2d = np.zeros((self.max_objs), dtype=np.bool) # 原本是np.uint8
+            mask_3d = np.zeros((self.max_objs), dtype=np.bool) # 原本是np.uint8
             object_num = len(objects) if len(objects) < self.max_objs else self.max_objs
             for i in range(object_num):
                 # filter objects by writelist

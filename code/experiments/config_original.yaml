@@ -2,7 +2,7 @@ random_seed: 444
 
 dataset:
   type: 'kitti'
-  root_dir: '/data/yangfan/KITTI/object/'
+  root_dir: '../../Dataset/3d-detection/'
   batch_size: 32
   class_merging: False
   use_dontcare: False
