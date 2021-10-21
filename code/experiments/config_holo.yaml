@@ -1,15 +1,15 @@
 random_seed: 444
 
 dataset:
-  type: 'kitti'
-  root_dir: '/data/yangfan/KITTI/object/'
+  type: 'holo'
+  root_dir: '/data/yangfan/holo_3d_80000'
   batch_size: 32
   class_merging: False
   use_dontcare: False
-  use_3d_center: True
-  writelist: ['Car','Pedestrian','Cyclist']
+  use_3d_center: False
+  writelist: ['car', 'bus', 'truck', 'engineering_truck', 'small_car', 'big_car']
   random_flip: 0.5
-  random_crop: 0.5
+  random_crop: 0
   scale: 0.4
   shift: 0.1
 

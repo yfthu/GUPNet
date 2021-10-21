@@ -1,0 +1,39 @@
+
+CUDA_VISIBLE_DEVICES=0,1,2 python tools/train_val.py 训练了KITTI数据集
+
+
+1018:
+禾多80000数据集 标注和图片个数：86141。
+KITTI训练+验证集：7481张图片，test集：7518张图片。
+
+GUPNet里图片是减均值，除以标准差输入网络的，正负值都有。lift_2d_to_3d里是除以255归一化到[0,1]之间输入网络的。
+
+
+*********************************************************************
+重要！！
+GUPNet里 Coord maps的计算在代码这里：
+project2rect, gupnet.py:214
+get_roi_feat_by_mask, gupnet.py:145
+get_roi_feat, gupnet.py:199
+forward, gupnet.py:121
+
+方法：
+把2d bbox的左上角和右下角 从图片上 逆投影到相机坐标系中，假定深度为1，进行计算（其实获得的是这两个点的方向）。
+coords_in_camera_coord只要这个投影方向的前两个坐标（x和y）。
+
+另外，project2rect代码里bx\by的计算方式可能有问题。
+
+
+
+
+coord_maps 通过左上和右下两个角点 获得7*7个方向。
+位置在这里：
+get_roi_feat_by_mask, gupnet.py:149
+get_roi_feat, gupnet.py:199
+forward, gupnet.py:121
+_call_impl, module.py:727
+_worker, parallel_apply.py:61
+run, threading.py:870
+_bootstrap_inner, threading.py:932
+_bootstrap, threading.py:890
+*********************************************************************
