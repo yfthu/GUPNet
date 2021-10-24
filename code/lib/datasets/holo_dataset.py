@@ -10,7 +10,7 @@ from lib.datasets.utils import angle2class
 from lib.datasets.utils import gaussian_radius
 from lib.datasets.utils import draw_umich_gaussian
 from lib.datasets.utils import get_angle_from_box3d,check_range
-from lib.datasets.kitti_utils import get_objects_from_label
+from lib.datasets.holo_utils import get_objects_from_label
 from lib.datasets.kitti_utils import Calibration
 from lib.datasets.kitti_utils import get_affine_transform
 from lib.datasets.kitti_utils import affine_transform
@@ -20,13 +20,21 @@ import pdb
 class HOLO_dataset(data.Dataset):
     def __init__(self, root_dir, split, cfg):
         # basic configuration
-        self.num_classes = 6
+        self.num_classes = 13
         self.max_objs = 50
-        self.class_name = ['car', 'bus', 'truck',
-                               'engineering_truck', 'small_car', 'big_car']
-        self.cls2id = {'car':0, 'bus':1, 'truck':2,
-                               'engineering_truck':3, 'small_car':4, 'big_car':5}
-        self.resolution = np.array([1920, 1020])  # W * H
+        self.class_name = ['Truck', 'Car', 'Huge_animal', 'Road_block', 'Cycle', 'Pedestrian', 'Water_Filled_Barrier',
+                           'Unkown', 'Tricycle', 'Cone', 'Bus', 'Emergency_vehicle', 'Warning_Triangle']
+        category_names_id = [{'id': 1, 'name': 'Truck'}, {'id': 2, 'name': 'Car'}, {'id': 3, 'name': 'Huge_animal'},
+                             {'id': 4, 'name': 'Road_block'}, {'id': 5, 'name': 'Cycle'},
+                             {'id': 6, 'name': 'Pedestrian'}, {'id': 7, 'name': 'Water_Filled_Barrier'},
+                             {'id': 8, 'name': 'Unkown'}, {'id': 9, 'name': 'Tricycle'}, {'id': 10, 'name': 'Cone'},
+                             {'id': 11, 'name': 'Bus'}, {'id': 12, 'name': 'Emergency_vehicle'},
+                             {'id': 13, 'name': 'Warning_Triangle'}]
+        self.cls2id = dict()
+        for id_name in category_names_id:
+            self.cls2id[id_name['name']] = id_name['id']
+
+        self.resolution = np.array([1920, 1024])  # W * H # todo ziji
         self.use_3d_center = cfg['use_3d_center']
         self.writelist = cfg['writelist']
         if cfg['class_merging']:
@@ -39,10 +47,11 @@ class HOLO_dataset(data.Dataset):
          'Cyclist': np.array([1.76282397,0.59706367,1.73698127])] 
         ''' 
         ##l,w,h
-        self.cls_mean_size = np.array([[1.86808227, 1.86677372, 5.25766236], # ziji todo
+        cls_mean_size = np.array([[1.86808227, 1.86677372, 5.25766236], # ziji todo
                                        ])
-                              
-
+        self.cls_mean_size = np.repeat(cls_mean_size, 13, axis=0)
+        assert split in ['train', 'val', 'trainval', 'test'] # ziji todo
+        self.split = split
 
 
         # path configuration
@@ -84,6 +93,8 @@ class HOLO_dataset(data.Dataset):
 
     def get_label(self, img_name):
         label_file = os.path.join(self.label_dir, '%s.txt' % img_name)
+        if not os.path.exists(label_file):
+            print("%s's label not exist!" % img_name)
         assert os.path.exists(label_file)
         return get_objects_from_label(label_file)
 
@@ -149,12 +160,12 @@ class HOLO_dataset(data.Dataset):
             heatmap = np.zeros((self.num_classes, features_size[1], features_size[0]), dtype=np.float32) # C * H * W
             size_2d = np.zeros((self.max_objs, 2), dtype=np.float32)
             offset_2d = np.zeros((self.max_objs, 2), dtype=np.float32)
-            #depth = np.zeros((self.max_objs, 1), dtype=np.float32)
+            depth = np.zeros((self.max_objs, 1), dtype=np.float32)
             heading_bin = np.zeros((self.max_objs, 1), dtype=np.int64)
             heading_res = np.zeros((self.max_objs, 1), dtype=np.float32)
             src_size_3d = np.zeros((self.max_objs, 3), dtype=np.float32)
             size_3d = np.zeros((self.max_objs, 3), dtype=np.float32)
-            #offset_3d = np.zeros((self.max_objs, 2), dtype=np.float32)
+            offset_3d = np.zeros((self.max_objs, 2), dtype=np.float32)
             height2d = np.zeros((self.max_objs, 1), dtype=np.float32)
             cls_ids = np.zeros((self.max_objs), dtype=np.int64)
             indices = np.zeros((self.max_objs), dtype=np.int64)
@@ -177,13 +188,18 @@ class HOLO_dataset(data.Dataset):
                 bbox_2d[2:] = affine_transform(bbox_2d[2:], trans)
                 # modify the 2d bbox according to pre-compute downsample ratio
                 bbox_2d[:] /= self.downsample
-    
-                # process 3d bbox & get 3d center
+
                 center_2d = np.array([(bbox_2d[0] + bbox_2d[2]) / 2, (bbox_2d[1] + bbox_2d[3]) / 2], dtype=np.float32)  # W * H
+
+                '''
+                # process 3d bbox & get 3d center
                 center_3d = objects[i].pos + [0, -objects[i].h / 2, 0]  # real 3D center in 3D space
                 center_3d = center_3d.reshape(-1, 3)  # shape adjustment (N, 3)
                 center_3d, _ = calib.rect_to_img(center_3d)  # project 3D center to image plane
                 center_3d = center_3d[0]  # shape adjustment
+                '''
+
+                center_3d = np.array((objects[i].p_x,objects[i].p_y),dtype=np.float32)
                 center_3d = affine_transform(center_3d.reshape(-1), trans)
                 center_3d /= self.downsample      
             
@@ -196,11 +212,13 @@ class HOLO_dataset(data.Dataset):
                 w, h = bbox_2d[2] - bbox_2d[0], bbox_2d[3] - bbox_2d[1]
                 radius = gaussian_radius((w, h))
                 radius = max(0, int(radius))
-    
+
+                '''
                 if objects[i].cls_type in ['Van', 'Truck', 'DontCare']:
                     draw_umich_gaussian(heatmap[1], center_heatmap, radius)
                     continue
-    
+                '''
+
                 cls_id = self.cls2id[objects[i].cls_type]
                 cls_ids[i] = cls_id
                 draw_umich_gaussian(heatmap[cls_id], center_heatmap, radius)
@@ -214,10 +232,11 @@ class HOLO_dataset(data.Dataset):
                 depth[i] = objects[i].pos[-1]
     
                 # encoding heading angle
-                #heading_angle = objects[i].alpha
-                heading_angle = calib.ry2alpha(objects[i].ry, (objects[i].box2d[0]+objects[i].box2d[2])/2)
+                heading_angle = objects[i].alpha
+                #heading_angle = calib.ry2alpha(objects[i].ry, (objects[i].box2d[0]+objects[i].box2d[2])/2)
                 if heading_angle > np.pi:  heading_angle -= 2 * np.pi  # check range
                 if heading_angle < -np.pi: heading_angle += 2 * np.pi
+                assert (heading_angle >= -np.pi and heading_angle <= np.pi)
                 heading_bin[i], heading_res[i] = angle2class(heading_angle)
     
                 # encoding 3d offset & size_3d
@@ -244,10 +263,11 @@ class HOLO_dataset(data.Dataset):
             targets = {}
         # collect return data
         inputs = img
-        info = {'img_id': index,
+        info = {'img_name': img_name,
                 'img_size': img_size,
                 'bbox_downsample_ratio': img_size/features_size}   
-        return inputs, calib.P2, coord_range, targets, info   #calib.P2
+        #return inputs, calib.P2, coord_range, targets, info   #calib.P2
+        return inputs, 0, coord_range, targets, info  # calib.P2 # todo ziji
 
 
 

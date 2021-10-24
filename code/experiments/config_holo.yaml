@@ -6,9 +6,10 @@ dataset:
   batch_size: 32
   class_merging: False
   use_dontcare: False
-  use_3d_center: False
-  writelist: ['car', 'bus', 'truck', 'engineering_truck', 'small_car', 'big_car']
-  random_flip: 0.5
+  use_3d_center: True
+  writelist: ['Truck', 'Car', 'Huge_animal', 'Road_block', 'Cycle', 'Pedestrian', 'Water_Filled_Barrier',
+                           'Unkown', 'Tricycle', 'Cone', 'Bus', 'Emergency_vehicle', 'Warning_Triangle']
+  random_flip: 0
   random_crop: 0
   scale: 0.4
   shift: 0.1
