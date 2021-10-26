@@ -41,11 +41,11 @@ def weights_init_classifier(m):
             nn.init.constant_(m.bias, 0.0)
 
 class GUPNet(nn.Module):
-    def __init__(self, backbone='dla34', neck='DLAUp', downsample=4, mean_size=None):
+    def __init__(self, backbone='dla34', neck='DLAUp', downsample=4, mean_size=None,cfg=None):
         assert downsample in [4, 8, 16, 32]
         super().__init__()
 
-
+        self.cfg = cfg
         self.backbone = globals()[backbone](pretrained=True, return_levels=True)
         self.head_conv = 256  # default setting for head conv
         self.mean_size = nn.Parameter(torch.tensor(mean_size,dtype=torch.float32),requires_grad=False)
@@ -67,23 +67,42 @@ class GUPNet(nn.Module):
                                      nn.ReLU(inplace=True),
                                      nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
 
-
-        self.depth = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
-                                     nn.BatchNorm2d(self.head_conv),
-                                     nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
-                                     nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
-        self.offset_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
-                                     nn.BatchNorm2d(self.head_conv),
-                                     nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
-                                     nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
-        self.size_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
-                                     nn.BatchNorm2d(self.head_conv),
-                                     nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
-                                     nn.Conv2d(self.head_conv, 4, kernel_size=1, stride=1, padding=0, bias=True))
-        self.heading = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
-                                     nn.BatchNorm2d(self.head_conv),
-                                     nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
-                                     nn.Conv2d(self.head_conv, 24, kernel_size=1, stride=1, padding=0, bias=True))
+        if self.cfg['model']['coord_maps'] == 'GUPNet':
+            self.depth = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+            self.offset_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+            self.size_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 4, kernel_size=1, stride=1, padding=0, bias=True))
+            self.heading = nn.Sequential(nn.Conv2d(channels[self.first_level]+2+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 24, kernel_size=1, stride=1, padding=0, bias=True))
+        elif self.cfg['model']['coord_maps'] == 'None':
+            self.depth = nn.Sequential(nn.Conv2d(channels[self.first_level]+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+            self.offset_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+            self.size_3d = nn.Sequential(nn.Conv2d(channels[self.first_level]+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 4, kernel_size=1, stride=1, padding=0, bias=True))
+            self.heading = nn.Sequential(nn.Conv2d(channels[self.first_level]+self.cls_num, self.head_conv, kernel_size=3, padding=1, bias=True),
+                                         nn.BatchNorm2d(self.head_conv),
+                                         nn.ReLU(inplace=True),nn.AdaptiveAvgPool2d(1),
+                                         nn.Conv2d(self.head_conv, 24, kernel_size=1, stride=1, padding=0, bias=True))
+        else:
+            raise NotImplementedError("self.cfg['model']['coord_maps'] not given!")
         # init layers
         self.heatmap[-1].bias.data.fill_(-2.19)
         self.fill_fc_weights(self.offset_2d)
@@ -167,7 +186,7 @@ class GUPNet(nn.Module):
             
             depth_net_out = self.depth(roi_feature_masked)[:,:,0,0]
             depth_geo_log_std = (h3d_log_std.squeeze()+2*(roi_calibs[:,0,0].log()-box2d_height.log())).unsqueeze(-1)
-            depth_net_log_std = torch.logsumexp(torch.cat([depth_net_out[:,1:2],depth_geo_log_std],-1),-1,keepdim=True)
+            depth_net_log_std = torch.logsumexp(torch.cat([depth_net_out[:,1:2],depth_geo_log_std],-1),-1,keepdim=True) # todo ziji 这个地方原代码写错了,是bug！！！!
 
             depth_net_out = torch.cat([(1. / (depth_net_out[:,0:1].sigmoid() + 1e-6) - 1.)+depth_geo.unsqueeze(-1),depth_net_log_std],-1)
 
@@ -187,6 +206,102 @@ class GUPNet(nn.Module):
             res['h3d_log_variance'] = torch.zeros([1,1]).to(device_id)
         return res
 
+    def get_roi_feat_by_mask_without_coord_maps(self, feat, box2d_maps, inds, mask, calibs, coord_ranges, cls_ids):
+        BATCH_SIZE, _, HEIGHT, WIDE = feat.size()
+        device_id = feat.device
+        num_masked_bin = mask.sum()
+        res = {}
+        if num_masked_bin != 0:
+            # get box2d of each roi region
+            box2d_masked = extract_input_from_tensor(box2d_maps, inds, mask)
+            # get roi feature
+            roi_feature_masked = roi_align(feat, box2d_masked, [7, 7])
+            # get coord range of each roi
+            coord_ranges_mask2d = coord_ranges[box2d_masked[:, 0].long()]
+
+            # map box2d coordinate from feature map size domain to original image size domain
+            box2d_masked = torch.cat([box2d_masked[:, 0:1],
+                                      box2d_masked[:, 1:2] / WIDE * (
+                                                  coord_ranges_mask2d[:, 1, 0:1] - coord_ranges_mask2d[:, 0,
+                                                                                   0:1]) + coord_ranges_mask2d[:, 0,
+                                                                                           0:1],
+                                      box2d_masked[:, 2:3] / HEIGHT * (
+                                                  coord_ranges_mask2d[:, 1, 1:2] - coord_ranges_mask2d[:, 0,
+                                                                                   1:2]) + coord_ranges_mask2d[:, 0,
+                                                                                           1:2],
+                                      box2d_masked[:, 3:4] / WIDE * (
+                                                  coord_ranges_mask2d[:, 1, 0:1] - coord_ranges_mask2d[:, 0,
+                                                                                   0:1]) + coord_ranges_mask2d[:, 0,
+                                                                                           0:1],
+                                      box2d_masked[:, 4:5] / HEIGHT * (
+                                                  coord_ranges_mask2d[:, 1, 1:2] - coord_ranges_mask2d[:, 0,
+                                                                                   1:2]) + coord_ranges_mask2d[:, 0,
+                                                                                           1:2]], 1)
+
+            '''
+            roi_calibs = calibs[box2d_masked[:, 0].long()]
+            # project the coordinate in the normal image to the camera coord by calibs
+            coords_in_camera_coord = torch.cat([self.project2rect(roi_calibs, torch.cat(
+                [box2d_masked[:, 1:3], torch.ones([num_masked_bin, 1]).to(device_id)], -1))[:, :2],
+                                                self.project2rect(roi_calibs, torch.cat([box2d_masked[:, 3:5],
+                                                                                         torch.ones(
+                                                                                             [num_masked_bin, 1]).to(
+                                                                                             device_id)], -1))[:, :2]],
+                                               -1)  # M x 4
+            coords_in_camera_coord = torch.cat([box2d_masked[:, 0:1], coords_in_camera_coord], -1)  # M x 5
+            # generate coord maps
+            coord_maps = torch.cat([torch.cat([coords_in_camera_coord[:, 1:2] + i * (
+                        coords_in_camera_coord[:, 3:4] - coords_in_camera_coord[:, 1:2]) / 6 for i in range(7)],
+                                              -1).unsqueeze(1).repeat([1, 7, 1]).unsqueeze(1),
+                                    torch.cat([coords_in_camera_coord[:, 2:3] + i * (
+                                                coords_in_camera_coord[:, 4:5] - coords_in_camera_coord[:, 2:3]) / 6 for
+                                               i in range(7)], -1).unsqueeze(2).repeat([1, 1, 7]).unsqueeze(1)], 1)
+            
+            '''
+            # concatenate coord maps with feature maps in the channel dim
+            cls_hots = torch.zeros(num_masked_bin, self.cls_num).to(device_id)
+            cls_hots[torch.arange(num_masked_bin).to(device_id), cls_ids[mask].long()] = 1.0
+
+            roi_feature_masked = torch.cat(
+                [roi_feature_masked, cls_hots.unsqueeze(-1).unsqueeze(-1).repeat([1, 1, 7, 7])], 1)
+
+            # compute heights of projected objects
+            box2d_height = torch.clamp(box2d_masked[:, 4] - box2d_masked[:, 2], min=1.0)
+            # compute real 3d height
+            size3d_offset = self.size_3d(roi_feature_masked)[:, :, 0, 0]
+            h3d_log_std = size3d_offset[:, 3:4]
+            size3d_offset = size3d_offset[:, :3]
+
+            size_3d = (self.mean_size[cls_ids[mask].long()] + size3d_offset)
+            # depth_geo = size_3d[:, 0] / box2d_height.squeeze() * roi_calibs[:, 0, 0]
+
+            depth_net_out = self.depth(roi_feature_masked)[:, :, 0, 0]
+            # depth_geo_log_std = (
+            #             h3d_log_std.squeeze() + 2 * (roi_calibs[:, 0, 0].log() - box2d_height.log())).unsqueeze(-1)
+            # depth_net_log_std = torch.logsumexp(torch.cat([depth_net_out[:, 1:2], depth_geo_log_std], -1), -1,
+            #                                     keepdim=True)
+
+            # depth_net_out = torch.cat(
+            #     [(1. / (depth_net_out[:, 0:1].sigmoid() + 1e-6) - 1.) + depth_geo.unsqueeze(-1), depth_net_log_std], -1)
+
+            depth_net_out = torch.cat(
+                [(1. / (depth_net_out[:, 0:1].sigmoid() + 1e-6) - 1.), depth_net_out[:, 1:2]], -1)
+
+            res['train_tag'] = torch.ones(num_masked_bin).type(torch.bool).to(device_id)
+            res['heading'] = self.heading(roi_feature_masked)[:, :, 0, 0]
+            res['depth'] = depth_net_out
+            res['offset_3d'] = self.offset_3d(roi_feature_masked)[:, :, 0, 0]
+            res['size_3d'] = size3d_offset # todo ziji 这里没有用预设anchor（没有用均值）
+            res['h3d_log_variance'] = h3d_log_std
+        else:
+            res['depth'] = torch.zeros([1, 2]).to(device_id)
+            res['offset_3d'] = torch.zeros([1, 2]).to(device_id)
+            res['size_3d'] = torch.zeros([1, 3]).to(device_id)
+            res['train_tag'] = torch.zeros(1).type(torch.bool).to(device_id)
+            res['heading'] = torch.zeros([1, 24]).to(device_id)
+            res['h3d_log_variance'] = torch.zeros([1, 1]).to(device_id)
+        return res
+
     def get_roi_feat(self,feat,inds,mask,ret,calibs,coord_ranges,cls_ids):
         BATCH_SIZE,_,HEIGHT,WIDE = feat.size()
         device_id = feat.device
@@ -198,7 +313,15 @@ class GUPNet(nn.Module):
         box2d_maps = torch.cat([box2d_centre-ret['size_2d']/2,box2d_centre+ret['size_2d']/2],1)
         box2d_maps = torch.cat([torch.arange(BATCH_SIZE).unsqueeze(-1).unsqueeze(-1).unsqueeze(-1).repeat([1,1,HEIGHT,WIDE]).type(torch.float).to(device_id),box2d_maps],1)
         #box2d_maps is box2d in each bin
-        res = self.get_roi_feat_by_mask(feat,box2d_maps,inds,mask,calibs,coord_ranges,cls_ids)
+
+        if self.cfg['model']['coord_maps'] == 'GUPNet':
+            res = self.get_roi_feat_by_mask(feat,box2d_maps,inds,mask,calibs,coord_ranges,cls_ids)
+        elif self.cfg['model']['coord_maps'] == 'None':
+            res = self.get_roi_feat_by_mask_without_coord_maps(feat, box2d_maps, inds, mask, calibs, coord_ranges,
+                                                               cls_ids)
+        else:
+            raise NotImplementedError("self.cfg['model']['coord_maps'] error!")
+
         return res
 
 

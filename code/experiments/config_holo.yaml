@@ -18,6 +18,7 @@ model:
   type: 'gupnet'
   backbone: 'dla34'
   neck: 'DLAUp'
+  coord_maps: 'None' # None or gup
 
 optimizer:
   type: 'adam'
