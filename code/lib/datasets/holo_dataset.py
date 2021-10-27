@@ -62,7 +62,13 @@ class HOLO_dataset(data.Dataset):
         self.label_dir = os.path.join(self.data_dir, 'label_2')
 
         self.all_img_list = os.listdir(self.image_dir)
-        training_set_size = 38000
+        def is_img_has_label(img_name):
+            return os.path.exists(os.path.join(self.label_dir, '%s.txt' % img_name))
+        self.all_img_list = list(filter(is_img_has_label, self.all_img_list))
+        self.all_img_list.sort()
+
+
+        training_set_size = 50000
         if split == 'train':
             self.img_list = self.all_img_list[0:training_set_size]
         elif split == 'val':

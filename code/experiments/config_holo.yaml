@@ -3,7 +3,7 @@ random_seed: 444
 dataset:
   type: 'holo'
   root_dir: '/data/yangfan/holo_3d_80000'
-  batch_size: 32
+  batch_size: 144 #32
   class_merging: False
   use_dontcare: False
   use_3d_center: True
@@ -35,7 +35,7 @@ trainer:
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 10 # checkpoint save interval (in epoch)
   disp_frequency: 5 # display interval (in batch)
-  log_dir: 'log'
+  log_dir: '1027_holo_without_coord_maps'
   #resume_model: '...'  
 tester:
   threshold: 0.2  # confidence filter
