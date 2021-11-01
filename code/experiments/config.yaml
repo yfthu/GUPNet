@@ -1,5 +1,5 @@
 random_seed: 444
-
+exp_dir: 'exp_kitti/one_exp'
 dataset:
   type: 'kitti'
   root_dir: '/data/yangfan/KITTI/object/'
@@ -35,6 +35,7 @@ trainer:
   save_frequency: 10 # checkpoint save interval (in epoch)
   disp_frequency: 5 # display interval (in batch)
   log_dir: 'log'
+  result_dir: 'result'
   #resume_model: '...'  
 tester:
   threshold: 0.2  # confidence filter

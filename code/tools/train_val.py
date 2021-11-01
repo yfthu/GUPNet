@@ -35,6 +35,9 @@ def main():
     # load cfg
     assert (os.path.exists(args.config))
     cfg = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
+    cfg['trainer']['log_dir'] = os.path.join(cfg['exp_dir'], cfg['trainer']['log_dir'])
+    cfg['trainer']['result_dir'] = os.path.join(cfg['exp_dir'], cfg['trainer']['result_dir'])
+
     os.makedirs(cfg['trainer']['log_dir'],exist_ok=True)
     logger = create_logger(os.path.join(cfg['trainer']['log_dir'],'train.log'))    
     
@@ -60,7 +63,7 @@ def main():
                       model=model,
                       optimizer=optimizer,
                       train_loader=train_loader,
-                      test_loader=val_loader,
+                      val_loader=val_loader,
                       lr_scheduler=lr_scheduler,
                       warmup_lr_scheduler=warmup_lr_scheduler,
                       logger=logger)

@@ -1,9 +1,9 @@
 random_seed: 444
-
+exp_dir: 'exp_holodataset/1029_holo_without_coord_maps'
 dataset:
   type: 'holo'
   root_dir: '/data/yangfan/holo_3d_80000'
-  batch_size: 144 #32
+  batch_size: 24 #32
   class_merging: False
   use_dontcare: False
   use_3d_center: True
@@ -32,11 +32,12 @@ lr_scheduler:
 
 trainer:
   max_epoch: 140
-  eval_frequency: 10 # evaluation interval (in epoch)
-  save_frequency: 10 # checkpoint save interval (in epoch)
+  eval_frequency: 1 #10 # evaluation interval (in epoch)
+  save_frequency: 1 #10 # checkpoint save interval (in epoch)
   disp_frequency: 5 # display interval (in batch)
-  log_dir: '1027_holo_without_coord_maps'
-  #resume_model: '...'  
+  log_dir: 'log'
+  result_dir: 'result'
+  resume_model: "/data/yangfan_home/detection/GUPNet/code/exp_holodataset/1029_holo_without_coord_maps/log/checkpoints/checkpoint_epoch_12.pth"
 tester:
   threshold: 0.2  # confidence filter
   #resume_model: '...'  
